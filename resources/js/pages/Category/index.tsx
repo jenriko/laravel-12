@@ -226,11 +226,7 @@ const Index: React.FC<CategoryIndexProps> = ({ categories, filters }) => {
                                                 <TableCell>{meta.from + index}</TableCell>
                                                 <TableCell className="font-medium">{category.name}</TableCell>
                                                 <TableCell>
-                                                    {new Date(category.created_at).toLocaleDateString('en-US', {
-                                                        year: 'numeric',
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    })}
+                                                    {category.created_at}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>

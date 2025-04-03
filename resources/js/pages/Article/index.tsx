@@ -94,11 +94,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
                                                 <TableCell className="font-medium">{article.user_id}</TableCell>
                                                 <TableCell className="font-medium">{article.description}</TableCell>
                                                 <TableCell>
-                                                    {new Date(article.created_at).toLocaleDateString('en-US', {
-                                                        year: 'numeric',
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    })}
+                                                    {article.created_at}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
