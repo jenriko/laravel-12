@@ -20,7 +20,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Article',
-        url: '/posts',
+        url: '/articles',
         icon: Newspaper,
     },
 ];

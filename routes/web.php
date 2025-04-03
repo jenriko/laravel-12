@@ -13,7 +13,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', DashboarController::class)->name('dashboard');
     Route::resource('categories', CategoryController::class);
-    Route::resource('posts', PostController::class);
+    Route::resource('articles', PostController::class);
 });
 
 require __DIR__.'/settings.php';

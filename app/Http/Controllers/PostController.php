@@ -25,4 +25,15 @@ class PostController extends Controller
             'filters' => $request->only(['search']),
         ]);
     }
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title' => ['required', 'string'],
+        ]);
+        Post::create([
+            'title' => $request->title,
+            'slug' => strtolower(str_replace(' ', '-', $request->name)) . '-' . rand(1000, 9999),
+        ]);
+        return redirect()->route('articles.index')->with('success', 'Article created successfully');
+    }
 }
