@@ -4,7 +4,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
@@ -18,15 +20,37 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/posts',
     },
 ];
+
 interface Article {
     id: number;
     title: string;
     slug: string;
+    category_id: number;
+    user_id: number;
+    description: string;
     created_at: string;
+    category?: {
+        id: number;
+        name: string;
+    };
+    user?: {
+        id: number;
+        name: string;
+    };
 }
+
+interface Category {
+    id: number;
+    name: string;
+}
+
 interface ArticleIndexProps {
-    categories: {
+    articles: {
         data: Article[];
+        meta: PaginationMeta;
+    };
+    categories: {
+        data: Category[]; // categories is an object with data array
         meta: PaginationMeta;
     };
     filters: {
@@ -34,13 +58,16 @@ interface ArticleIndexProps {
     };
 }
 
-const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
+const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) => {
     const { data: articlesData, meta } = articles;
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
     const [formData, setFormData] = useState({
         title: '',
+        slug:'',
+        category_id: '',
+        description: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isProcessing, setIsProcessing] = useState(false);
@@ -58,8 +85,9 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
             },
         );
     };
+
     const handleOpenAddDialog = () => {
-        setFormData({ title: '' });
+        setFormData({ title: '', category_id: '', description: '' });
         setErrors({});
         setIsAddDialogOpen(true);
     };
@@ -68,6 +96,8 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
         setCurrentArticle(article);
         setFormData({
             title: article.title,
+            category_id: article.category_id.toString(),
+            description: article.description,
         });
         setIsEditDialogOpen(true);
     };
@@ -77,6 +107,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
         setIsAddDialogOpen(false);
         setErrors({});
     };
+
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsProcessing(true);
@@ -84,22 +115,30 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
         try {
             await router.post(route('articles.store'), formData, {
                 onSuccess: () => {
-                    toast.success('Category created successfully');
+                    toast.success('Article created successfully');
                     handleCloseDialog();
                 },
                 onError: (errors) => {
                     setErrors(errors);
-                    toast.error('Failed to create category');
+                    toast.error('Failed to create article');
                 },
             });
         } finally {
             setIsProcessing(false);
         }
     };
+
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData((prev) => ({
             ...prev,
             [e.target.name]: e.target.value,
+        }));
+    };
+
+    const handleSelectChange = (name: string, value: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
         }));
     };
 
@@ -137,7 +176,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
                                         <TableHead className="w-[50px]">#</TableHead>
                                         <TableHead>Title</TableHead>
                                         <TableHead>Category</TableHead>
-                                        <TableHead>User</TableHead>
+                                        <TableHead>Author</TableHead>
                                         <TableHead>Description</TableHead>
                                         <TableHead>Created At</TableHead>
                                         <TableHead className="w-[100px] text-right">Actions</TableHead>
@@ -149,10 +188,12 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
                                             <TableRow key={article.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                                                 <TableCell>{meta.from + index}</TableCell>
                                                 <TableCell className="font-medium">{article.title}</TableCell>
-                                                <TableCell className="font-medium">{article.category_id}</TableCell>
-                                                <TableCell className="font-medium">{article.user_id}</TableCell>
-                                                <TableCell className="font-medium">{article.description}</TableCell>
-                                                <TableCell>{article.created_at}</TableCell>
+                                                <TableCell className="font-medium">
+                                                    {article.category?.name || `Category ${article.category_id}`}
+                                                </TableCell>
+                                                <TableCell className="font-medium">{article.user?.name || `User ${article.user_id}`}</TableCell>
+                                                <TableCell className="font-medium">{article.description.substring(0, 50)}...</TableCell>
+                                                <TableCell>{new Date(article.created_at).toLocaleDateString()}</TableCell>
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -164,16 +205,13 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
                                                         <DropdownMenuContent align="end" className="w-[150px]">
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                             <DropdownMenuItem
-                                                                onClick={() => handleOpenEditDialog(category)}
+                                                                onClick={() => handleOpenEditDialog(article)}
                                                                 className="cursor-pointer"
                                                             >
                                                                 <PenBox className="mr-2 h-4 w-4 text-blue-500" />
                                                                 Edit
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                className="cursor-pointer text-red-500 focus:text-red-500"
-                                                                onClick={() => handleDeleteClick(category)}
-                                                            >
+                                                            <DropdownMenuItem className="cursor-pointer text-red-500 focus:text-red-500">
                                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                                 Delete
                                                             </DropdownMenuItem>
@@ -184,7 +222,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center">
+                                            <TableCell colSpan={7} className="h-24 text-center">
                                                 No articles found
                                             </TableCell>
                                         </TableRow>
@@ -194,6 +232,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
                         </div>
                     </CardContent>
                 </Card>
+
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                     <DialogContent>
                         <DialogHeader>
@@ -216,6 +255,43 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
                                     {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
                                 </div>
 
+                                <div>
+                                    <Label htmlFor="category_id">Category</Label>
+                                    <Select
+                                        name="category_id"
+                                        value={formData.category_id}
+                                        onValueChange={(value) => handleSelectChange('category_id', value)}
+                                    >
+                                        <SelectTrigger className="mt-1 w-full">
+                                            <SelectValue placeholder="Select a category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                <SelectLabel>Categories</SelectLabel>
+                                                {categories.data.map((category) => (
+                                                    <SelectItem key={category.id} value={category.id.toString()}>
+                                                        {category.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.category_id && <p className="mt-1 text-sm text-red-500">{errors.category_id}</p>}
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="description">Description</Label>
+                                    <Textarea
+                                        id="description"
+                                        name="description"
+                                        value={formData.description}
+                                        onChange={handleFormChange}
+                                        className="mt-1"
+                                        disabled={isProcessing}
+                                    />
+                                    {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
+                                </div>
+
                                 <div className="flex justify-end gap-2">
                                     <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isProcessing}>
                                         Cancel
@@ -228,8 +304,11 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, filters }) => {
                         </form>
                     </DialogContent>
                 </Dialog>
+
+                {/* Edit Dialog would be similar but with different submit handler */}
             </div>
         </AppLayout>
     );
 };
+
 export default Index;
