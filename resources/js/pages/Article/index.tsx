@@ -65,7 +65,6 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
     const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
     const [formData, setFormData] = useState({
         title: '',
-        slug:'',
         category_id: '',
         description: '',
     });
@@ -87,7 +86,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
     };
 
     const handleOpenAddDialog = () => {
-        setFormData({ title: '', category_id: '', description: '' });
+        setFormData({ title: '', slug: '',category_id: '', description: '' });
         setErrors({});
         setIsAddDialogOpen(true);
     };
