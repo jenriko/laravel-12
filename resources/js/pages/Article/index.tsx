@@ -349,7 +349,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                 </Card>
 
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogContent className="!max-w-[90vw] !w-full max-h-[80vh] overflow-y-auto">
+                    <DialogContent className="max-h-[80vh] !w-full !max-w-[90vw] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Add New Article</DialogTitle>
                             <DialogDescription>Enter the details for the new article</DialogDescription>
@@ -423,7 +423,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                 </Dialog>
 
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                    <DialogContent className="max-h-[80vh] max-w-6xl overflow-y-auto">
+                    <DialogContent className="max-h-[80vh] !w-full !max-w-[90vw] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Edit Article</DialogTitle>
                             <DialogDescription>Update the details for this article</DialogDescription>
