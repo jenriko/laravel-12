@@ -31,19 +31,20 @@ class PostController extends Controller
     }
     public function store(Request $request)
     {
+        $userId = auth()->id();
         $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'user_id' => 'required|exists:users,id',
             'title' => ['required', 'string'],
             'description' => ['required', 'string'],
         ]);
         Post::create([
             'category_id' => $request->category_id,
-            'user_id' => auth()->id(), 
+            'user_id' => $userId,
             'title' => $request->title,
             'slug' => strtolower(str_replace(' ', '-', $request->title)) . '-' . rand(1000, 9999),
             'description' => $request->description,
         ]);
+
         return redirect()->route('articles.index')->with('success', 'Article created successfully');
     }
 }
