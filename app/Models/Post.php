@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model
 {
-    protected $guarded = [];
+    protected $fillable = ['category_id', 'user_id', 'title', 'description', 'slug'];
     use HasFactory;
 
     public function getRouteKeyName()

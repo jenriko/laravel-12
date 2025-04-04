@@ -19,7 +19,7 @@ class PostController extends Controller
         if ($request->has('search')) {
             $search = $request->input('search');
             $articles->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%');
+                $query->where('title', 'like', '%' . $search . '%');
             });
         }
         $articles = $articles->latest()->paginate(10);
@@ -45,6 +45,32 @@ class PostController extends Controller
             'description' => $request->description,
         ]);
 
-        return redirect()->route('articles.index')->with('success', 'Article created successfully');
+        return to_route('articles.index')->with('success', 'Article created successfully');
+    }
+    public function update(Request $request, $slug)
+    {
+        $post = Post::where('slug', $slug)->firstOrFail();
+        $userId = auth()->id();
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'title' => ['required', 'string'],
+            'description' => ['required', 'string'],
+        ]);
+
+        $post->update([
+            'category_id' => $request->category_id,
+            'user_id' => $userId,
+            'title' => $request->title,
+            'slug' => strtolower(str_replace(' ', '-', $request->title)) . '-' . rand(1000, 9999),
+            'description' => $request->description,
+        ]);
+
+        return to_route('articles.index')->with('success', 'Article Updated Successfully');
+    }
+    public function destroy($slug)
+    {
+        $post = Post::where('slug', $slug)->firstOrFail();
+        $post->delete();
+        return back()->with('success', 'Category deleted successfully');
     }
 }

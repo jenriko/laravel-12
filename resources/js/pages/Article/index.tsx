@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -81,6 +81,8 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
     const { data: articlesData, meta } = articles;
     const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [articleToDelete, setarticleToDelete] = useState<Category | null>(null);
     const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
     const [formData, setFormData] = useState<FormData>({
         title: '',
@@ -114,7 +116,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
         setCurrentArticle(article);
         setFormData({
             title: article.title,
-            category_id: article.category_id.toString(),
+            category_id: article.category ? article.category.id.toString() : '',
             description: article.description,
         });
         setIsEditDialogOpen(true);
@@ -145,6 +147,27 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
             setIsProcessing(false);
         }
     };
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsProcessing(true);
+
+        if (!currentArticle) return;
+
+        try {
+            await router.put(route('articles.update', currentArticle.slug), formData, {
+                onSuccess: () => {
+                    toast.success('Article updated successfully');
+                    handleCloseDialog();
+                },
+                onError: (errors) => {
+                    setErrors(errors);
+                    toast.error('Failed to update article');
+                },
+            });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData((prev) => ({
@@ -160,6 +183,29 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
         }));
     };
 
+    const handleDeleteClick = (article: Article) => {
+        setarticleToDelete(article);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!articleToDelete) return;
+
+        setIsProcessing(true);
+        try {
+            await router.delete(route('articles.destroy', articleToDelete.slug), {
+                onSuccess: () => {
+                    toast.success('Article deleted successfully');
+                    setIsDeleteDialogOpen(false);
+                },
+                onError: () => {
+                    toast.error('Failed to delete category');
+                },
+            });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Article" />
@@ -206,12 +252,10 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                                             <TableRow key={article.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                                                 <TableCell>{meta.from + index}</TableCell>
                                                 <TableCell className="font-medium">{article.title}</TableCell>
-                                                <TableCell className="font-medium">
-                                                    {article.category?.name || `Category ${article.category_id}`}
-                                                </TableCell>
-                                                <TableCell className="font-medium">{article.user?.name || `User ${article.user_id}`}</TableCell>
+                                                <TableCell className="font-medium">{article.category?.name}</TableCell>
+                                                <TableCell className="font-medium">{article.user?.name}</TableCell>
                                                 <TableCell className="font-medium">{article.description.substring(0, 50)}...</TableCell>
-                                                <TableCell>{new Date(article.created_at).toLocaleDateString()}</TableCell>
+                                                <TableCell>{article.created_at}</TableCell>
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -229,7 +273,10 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                                                                 <PenBox className="mr-2 h-4 w-4 text-blue-500" />
                                                                 Edit
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem className="cursor-pointer text-red-500 focus:text-red-500">
+                                                            <DropdownMenuItem
+                                                                className="cursor-pointer text-red-500 focus:text-red-500"
+                                                                onClick={() => handleDeleteClick(article)}
+                                                            >
                                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                                 Delete
                                                             </DropdownMenuItem>
@@ -323,7 +370,93 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                     </DialogContent>
                 </Dialog>
 
-                {/* Edit Dialog would be similar but with different submit handler */}
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Edit Article</DialogTitle>
+                            <DialogDescription>Update the details for this article</DialogDescription>
+                        </DialogHeader>
+
+                        <form onSubmit={handleEditSubmit}>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="title">Title</Label>
+                                    <Input
+                                        id="title"
+                                        name="title"
+                                        value={formData.title}
+                                        onChange={handleFormChange}
+                                        className="mt-1"
+                                        disabled={isProcessing}
+                                    />
+                                    {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="category_id">Category</Label>
+                                    <Select
+                                        name="category_id"
+                                        value={formData.category_id}
+                                        onValueChange={(value) => handleSelectChange('category_id', value)}
+                                    >
+                                        <SelectTrigger className="mt-1 w-full">
+                                            <SelectValue placeholder="Select a category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                <SelectLabel>Categories</SelectLabel>
+                                                {categories.data.map((category) => (
+                                                    <SelectItem key={category.id} value={category.id.toString()}>
+                                                        {category.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.category_id && <p className="mt-1 text-sm text-red-500">{errors.category_id}</p>}
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="description">Description</Label>
+                                    <Textarea
+                                        id="description"
+                                        name="description"
+                                        value={formData.description}
+                                        onChange={handleFormChange}
+                                        className="mt-1"
+                                        disabled={isProcessing}
+                                    />
+                                    {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
+                                </div>
+
+                                <div className="flex justify-end gap-2">
+                                    <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isProcessing}>
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" disabled={isProcessing}>
+                                        {isProcessing ? 'Updating...' : 'Update'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+                <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Confirm Deletion</DialogTitle>
+                            <DialogDescription>Are you sure you want to delete the article ? This action cannot be undone.</DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isProcessing}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isProcessing}>
+                                {isProcessing ? 'Deleting...' : 'Delete'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );
