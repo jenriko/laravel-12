@@ -1,3 +1,5 @@
+import { plugins } from '@/components/constants/plugin';
+import { toolbars } from '@/components/constants/toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -6,12 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
+import { Editor } from '@tinymce/tinymce-react';
 import { MoreHorizontal, PenBox, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface BreadcrumbItem {
@@ -77,7 +79,10 @@ interface FormData {
 interface Errors {
     [key: string]: string;
 }
+
 const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) => {
+    const API_KEY = import.meta.env.VITE_TINY_MCE_API_KEY;
+    const editorRef = useRef<any>(null);
     const { data: articlesData, meta } = articles;
     const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
@@ -206,6 +211,44 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
             setIsProcessing(false);
         }
     };
+
+    const handleEditorChange = (content: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            description: content,
+        }));
+    };
+    const editorInit = {
+        plugins: plugins.join(' '),
+        toolbar: toolbars.join(' | '),
+        height: 500,
+        menubar: false,
+        branding: false,
+        content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+        images_upload_handler: async (blobInfo: any) => {
+            try {
+                const formData = new FormData();
+                formData.append('file', blobInfo.blob(), blobInfo.filename());
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) throw new Error('Upload failed');
+
+                const data = await response.json();
+                return data.url;
+            } catch (error) {
+                console.error('Upload error:', error);
+                toast.error('Failed to upload image');
+                return '';
+            }
+        },
+        setup: (editor: any) => {
+            editorRef.current = editor;
+        },
+    };
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Article" />
@@ -254,7 +297,14 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                                                 <TableCell className="font-medium">{article.title}</TableCell>
                                                 <TableCell className="font-medium">{article.category?.name}</TableCell>
                                                 <TableCell className="font-medium">{article.user?.name}</TableCell>
-                                                <TableCell className="font-medium">{article.description.substring(0, 50)}...</TableCell>
+                                                {/* <TableCell className="font-medium">{article.description.substring(0, 50)}...</TableCell> */}
+                                                <TableCell className="font-medium">
+                                                    <div
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: article.description.substring(0, 50) + '...', // Make sure you don’t break the HTML structure
+                                                        }}
+                                                    />
+                                                </TableCell>
                                                 <TableCell>{article.created_at}</TableCell>
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
@@ -299,7 +349,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                 </Card>
 
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogContent>
+                    <DialogContent className="max-h-[80vh] max-w-6xl overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Add New Article</DialogTitle>
                             <DialogDescription>Enter the details for the new article</DialogDescription>
@@ -346,14 +396,16 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
 
                                 <div>
                                     <Label htmlFor="description">Description</Label>
-                                    <Textarea
+                                    <Editor apiKey={API_KEY} value={formData.description} onEditorChange={handleEditorChange} init={editorInit} />
+                                    {/* <Textarea
                                         id="description"
                                         name="description"
                                         value={formData.description}
                                         onChange={handleFormChange}
                                         className="mt-1"
                                         disabled={isProcessing}
-                                    />
+                                    /> */}
+
                                     {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
                                 </div>
 
@@ -371,7 +423,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                 </Dialog>
 
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                    <DialogContent>
+                    <DialogContent className="max-h-[80vh] max-w-6xl overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Edit Article</DialogTitle>
                             <DialogDescription>Update the details for this article</DialogDescription>
@@ -418,14 +470,15 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
 
                                 <div>
                                     <Label htmlFor="description">Description</Label>
-                                    <Textarea
+                                    <Editor apiKey={API_KEY} value={formData.description} onEditorChange={handleEditorChange} init={editorInit} />
+                                    {/* <Textarea
                                         id="description"
                                         name="description"
                                         value={formData.description}
                                         onChange={handleFormChange}
                                         className="mt-1"
                                         disabled={isProcessing}
-                                    />
+                                    /> */}
                                     {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
                                 </div>
 
