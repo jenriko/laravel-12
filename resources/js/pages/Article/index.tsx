@@ -14,12 +14,23 @@ import { MoreHorizontal, PenBox, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+interface BreadcrumbItem {
+    title: string;
+    href: string;
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Article',
         href: '/posts',
     },
 ];
+
+interface PaginationMeta {
+    current_page: number;
+    last_page: number;
+    total: number;
+}
 
 interface Article {
     id: number;
@@ -57,20 +68,28 @@ interface ArticleIndexProps {
         search?: string;
     };
 }
+interface FormData {
+    title: string;
+    category_id: string; // Changing to string as the category_id is being handled as a string in the form
+    description: string;
+}
 
+interface Errors {
+    [key: string]: string;
+}
 const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) => {
     const { data: articlesData, meta } = articles;
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
     const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         title: '',
         category_id: '',
         description: '',
     });
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [search, setSearch] = useState(filters.search || '');
+    const [errors, setErrors] = useState<Errors>({});
+    const [isProcessing, setIsProcessing] = useState<boolean>(false);
+    const [search, setSearch] = useState<string>(filters.search || '');
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -86,7 +105,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
     };
 
     const handleOpenAddDialog = () => {
-        setFormData({ title: '', slug: '',category_id: '', description: '' });
+        setFormData({ title: '', category_id: '', description: '' });
         setErrors({});
         setIsAddDialogOpen(true);
     };
