@@ -29,6 +29,13 @@ class PostController extends Controller
             'filters' => $request->only(['search']),
         ]);
     }
+    public function create()
+    {
+        $categories = Category::all();
+        return inertia('Article/create', [
+            'categories' => CategoryResource::collection($categories),
+        ]);
+    }
     public function store(Request $request)
     {
         $userId = auth()->id();

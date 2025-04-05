@@ -212,6 +212,10 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
         }
     };
 
+    const handleAddArticle = () => {
+        router.visit(route('articles.create'));
+    };
+
     const handleEditorChange = (content: string) => {
         setFormData((prev) => ({
             ...prev,
@@ -268,7 +272,7 @@ const Index: React.FC<ArticleIndexProps> = ({ articles, categories, filters }) =
                                     onChange={(e) => handleSearch(e.target.value)}
                                     className="w-full sm:w-64"
                                 />
-                                <Button onClick={handleOpenAddDialog} className="whitespace-nowrap">
+                                <Button onClick={handleAddArticle} className="whitespace-nowrap">
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add Article
                                 </Button>
